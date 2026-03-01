@@ -5,12 +5,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "generate": "npx tsx skills/web-assets/scripts/generate.ts",
+    "generate": "npx tsx --env-file=.env skills/web-assets/scripts/generate.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@google/genai": "^0.14.0"
+    "@google/genai": "^0.14.0",
+    "postcss": "^8.5.6"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

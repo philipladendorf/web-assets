@@ -1,5 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
+import postcss from "postcss";
 
 export interface BrandColors {
   primary?: string;
@@ -26,7 +27,6 @@ export interface BrandConfig {
 
 const BRAND_CONFIG_FILES = [
   "brand.json",
-  "brand.yaml",
   "theme.json",
   "config/brand.json",
 ];
@@ -36,11 +36,11 @@ export function detectBrand(projectPath: string): BrandConfig | null {
   const brandJson = extractFromBrandJson(projectPath);
   if (brandJson) return brandJson;
 
-  // Priority 2: Tailwind config
+  // Priority 2: Tailwind config (v3 JS/TS config files)
   const tailwindBrand = extractFromTailwind(projectPath);
   if (tailwindBrand) return tailwindBrand;
 
-  // Priority 3: CSS variables
+  // Priority 3: CSS variables (also handles Tailwind v4 @theme blocks)
   const cssBrand = extractFromCss(projectPath);
   if (cssBrand) return cssBrand;
 
@@ -126,7 +126,6 @@ function extractColorsFromTailwindContent(content: string): BrandColors {
   while ((match = hexPattern.exec(colorsBlock)) !== null) {
     const [, name, hex] = match;
     if (name === "brand") {
-      // Handle brand.primary, brand.secondary etc.
       if (!colors.primary) colors.primary = hex;
       else if (!colors.secondary) colors.secondary = hex;
     } else {
@@ -165,6 +164,10 @@ function extractFontsFromTailwindContent(content: string): BrandConfig["fonts"] 
   return fonts;
 }
 
+const COLOR_KEYS: (keyof BrandColors)[] = [
+  "primary", "secondary", "accent", "background", "foreground", "muted",
+];
+
 function extractFromCss(projectPath: string): BrandConfig | null {
   const cssPaths = [
     "globals.css",
@@ -197,30 +200,41 @@ function extractFromCss(projectPath: string): BrandConfig | null {
   return null;
 }
 
+function isInRootOrTheme(node: postcss.Declaration): boolean {
+  const parent = node.parent;
+  if (!parent) return false;
+
+  // Direct :root rule
+  if (parent.type === "rule" && (parent as postcss.Rule).selector === ":root") return true;
+
+  // @theme at-rule (Tailwind v4)
+  if (parent.type === "atrule" && (parent as postcss.AtRule).name === "theme") return true;
+
+  // :root inside @layer or other at-rules
+  if (parent.type === "rule" && (parent as postcss.Rule).selector === ":root") return true;
+
+  return false;
+}
+
 function extractColorsFromCssContent(content: string): BrandColors {
   const colors: BrandColors = {};
+  const hexPattern = /^#[A-Fa-f0-9]{3,6}$/;
 
-  // Match CSS variables in :root
-  const rootMatch = content.match(/:root\s*\{([^}]+)\}/s);
-  if (!rootMatch) return colors;
+  const root = postcss.parse(content);
 
-  const rootBlock = rootMatch[1];
+  root.walk((node) => {
+    if (node.type !== "decl") return;
+    if (!isInRootOrTheme(node)) return;
 
-  const patterns: [keyof BrandColors, RegExp][] = [
-    ["primary", /--color-primary\s*:\s*(#[A-Fa-f0-9]{6}|#[A-Fa-f0-9]{3})/],
-    ["secondary", /--color-secondary\s*:\s*(#[A-Fa-f0-9]{6}|#[A-Fa-f0-9]{3})/],
-    ["accent", /--color-accent\s*:\s*(#[A-Fa-f0-9]{6}|#[A-Fa-f0-9]{3})/],
-    ["background", /--color-background\s*:\s*(#[A-Fa-f0-9]{6}|#[A-Fa-f0-9]{3})/],
-    ["foreground", /--color-foreground\s*:\s*(#[A-Fa-f0-9]{6}|#[A-Fa-f0-9]{3})/],
-    ["muted", /--color-muted\s*:\s*(#[A-Fa-f0-9]{6}|#[A-Fa-f0-9]{3})/],
-  ];
-
-  for (const [key, pattern] of patterns) {
-    const match = rootBlock.match(pattern);
-    if (match) {
-      colors[key] = match[1];
+    for (const key of COLOR_KEYS) {
+      if (node.prop === `--color-${key}`) {
+        const value = node.value.trim();
+        if (hexPattern.test(value)) {
+          colors[key] = value;
+        }
+      }
     }
-  }
+  });
 
   return colors;
 }
@@ -228,16 +242,21 @@ function extractColorsFromCssContent(content: string): BrandColors {
 function extractFontsFromCssContent(content: string): BrandConfig["fonts"] {
   const fonts: BrandConfig["fonts"] = {};
 
-  const rootMatch = content.match(/:root\s*\{([^}]+)\}/s);
-  if (!rootMatch) return fonts;
+  const root = postcss.parse(content);
 
-  const rootBlock = rootMatch[1];
+  root.walk((node) => {
+    if (node.type !== "decl") return;
+    if (!isInRootOrTheme(node)) return;
 
-  const sansMatch = rootBlock.match(/--font-sans\s*:\s*['"]([^'",]+)/);
-  if (sansMatch) fonts.sans = sansMatch[1].replace(/['"]/g, "").trim();
-
-  const monoMatch = rootBlock.match(/--font-mono\s*:\s*['"]([^'",]+)/);
-  if (monoMatch) fonts.mono = monoMatch[1].replace(/['"]/g, "").trim();
+    if (node.prop === "--font-sans") {
+      const firstFont = node.value.split(",")[0].replace(/['"]/g, "").trim();
+      if (firstFont) fonts.sans = firstFont;
+    }
+    if (node.prop === "--font-mono") {
+      const firstFont = node.value.split(",")[0].replace(/['"]/g, "").trim();
+      if (firstFont) fonts.mono = firstFont;
+    }
+  });
 
   return fonts;
 }

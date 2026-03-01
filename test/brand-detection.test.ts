@@ -21,32 +21,51 @@ describe("brand-detection", () => {
       expect(result?.fonts?.heading).toBe("Poppins");
       expect(result?.style).toBe("modern playful");
     });
+
+    it("should prioritize brand.json over tailwind and CSS", () => {
+      // FIXTURES_DIR has brand.json, tailwind.config.ts, AND globals.css
+      const result = detectBrand(FIXTURES_DIR);
+      expect(result?.source).toBe("brand.json");
+    });
   });
 
   describe("tailwind config extraction", () => {
     it("should extract colors from tailwind.config.ts", () => {
-      const tailwindPath = path.join(FIXTURES_DIR, "tailwind-only");
-      // For this test, we'd need to create a separate fixture without brand.json
-      // For now, brand.json takes priority
-      
-      // Test the tailwind fixture content directly
-      const result = detectBrand(FIXTURES_DIR);
-      // This will find brand.json first, so we test that priority works
-      expect(result?.source).toBe("brand.json");
+      const result = detectBrand(path.join(FIXTURES_DIR, "tailwind-only"));
+      expect(result).not.toBeNull();
+      expect(result?.source).toBe("tailwind");
+      expect(result?.colors.primary).toBe("#D74000");
+      expect(result?.colors.secondary).toBe("#1A2332");
+      expect(result?.colors.accent).toBe("#F59E0B");
+      expect(result?.colors.muted).toBe("#6B7280");
+      expect(result?.colors.background).toBe("#FFFFFF");
+      expect(result?.colors.foreground).toBe("#1F2937");
     });
 
-    it("should extract brand colors from nested brand object", () => {
-      // The tailwind.config.ts fixture has brand: { primary, secondary, ... }
-      const result = detectBrand(FIXTURES_DIR);
-      expect(result?.colors).toBeDefined();
+    it("should extract fonts from tailwind.config.ts", () => {
+      const result = detectBrand(path.join(FIXTURES_DIR, "tailwind-only"));
+      expect(result?.fonts?.sans).toBe("Inter");
+      expect(result?.fonts?.mono).toBe("JetBrains Mono");
     });
   });
 
   describe("CSS variables extraction", () => {
-    it("should extract colors from CSS variables", () => {
-      const result = detectBrand(FIXTURES_DIR);
-      // brand.json takes priority, so this tests that priority order
-      expect(result?.source).toBe("brand.json");
+    it("should extract colors from :root CSS variables", () => {
+      const result = detectBrand(path.join(FIXTURES_DIR, "css-only"));
+      expect(result).not.toBeNull();
+      expect(result?.source).toBe("css");
+      expect(result?.colors.primary).toBe("#2563EB");
+      expect(result?.colors.secondary).toBe("#10B981");
+      expect(result?.colors.accent).toBe("#F59E0B");
+      expect(result?.colors.background).toBe("#FFFFFF");
+      expect(result?.colors.foreground).toBe("#1F2937");
+      expect(result?.colors.muted).toBe("#6B7280");
+    });
+
+    it("should extract fonts from CSS variables", () => {
+      const result = detectBrand(path.join(FIXTURES_DIR, "css-only"));
+      expect(result?.fonts?.sans).toBe("Inter");
+      expect(result?.fonts?.mono).toBe("JetBrains Mono");
     });
   });
 });

@@ -131,18 +131,27 @@ function detectDimensions(code: string): { width?: number; height?: number } {
 }
 
 function calculateAspectRatio(width: number, height: number): string {
+  const ratio = width / height;
+
+  // Match known ratios by value (tolerance handles rounding)
+  const knownRatios: [string, number][] = [
+    ["1:1", 1],
+    ["16:9", 16 / 9],
+    ["21:9", 21 / 9],
+    ["4:3", 4 / 3],
+    ["3:4", 3 / 4],
+    ["1.91:1", 1.91],
+    ["2:1", 2],
+  ];
+
+  for (const [name, target] of knownRatios) {
+    if (Math.abs(ratio - target) < 0.02) return name;
+  }
+
+  // Fallback: reduce to simplest integer ratio
   const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
   const divisor = gcd(width, height);
-  const w = width / divisor;
-  const h = height / divisor;
-
-  // Normalize common ratios
-  if (w === 1200 && h === 630) return "1.91:1";
-  if (w === 1200 && h === 600) return "2:1";
-  if (w === 1920 && h === 1080) return "16:9";
-  if (w === 2560 && h === 1080) return "21:9";
-
-  return `${w}:${h}`;
+  return `${width / divisor}:${height / divisor}`;
 }
 
 function extractNearbyText(code: string): string[] {
@@ -158,16 +167,22 @@ function extractNearbyText(code: string): string[] {
     }
   }
 
-  // Extract alt text
-  const altPattern = /alt=["']([^"']+)["']/g;
+  // Extract alt text (handles alt="...", alt={"..."}, alt={`...`})
+  const altPattern = /alt=(?:["']([^"']+)["']|\{["'`]([^"'`]+)["'`]\})/g;
   while ((match = altPattern.exec(code)) !== null) {
-    texts.push(match[1]);
+    texts.push(match[1] ?? match[2]);
   }
 
-  // Extract aria-label
-  const ariaPattern = /aria-label=["']([^"']+)["']/g;
+  // Extract aria-label (handles both HTML and JSX expression forms)
+  const ariaPattern = /aria-label=(?:["']([^"']+)["']|\{["'`]([^"'`]+)["'`]\})/g;
   while ((match = ariaPattern.exec(code)) !== null) {
-    texts.push(match[1]);
+    texts.push(match[1] ?? match[2]);
+  }
+
+  // Extract title attribute
+  const titlePattern = /title=(?:["']([^"']+)["']|\{["'`]([^"'`]+)["'`]\})/g;
+  while ((match = titlePattern.exec(code)) !== null) {
+    texts.push(match[1] ?? match[2]);
   }
 
   // Extract heading content

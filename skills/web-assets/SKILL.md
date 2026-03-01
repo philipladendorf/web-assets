@@ -1,18 +1,6 @@
 ---
 name: web-assets
-description: |
-  Generate production-ready visual assets for web projects using AI. Creates logos, icons, hero images, social cards, and illustrations that match your brand.
-
-  USE THIS SKILL WHEN:
-  - "generate a logo" / "create a logo" / "need a logo"
-  - "hero image" / "hero section image" / "banner image"
-  - "og:image" / "open graph image" / "social card"
-  - "favicon" / "app icon" / "icon"
-  - "illustration for..." / "image for..."
-  - "brand assets" / "visual assets"
-  - Any request to create visual imagery for a web project
-
-  This skill uses Google Gemini for image generation. Requires GOOGLE_API_KEY environment variable.
+description: "Generate production-ready visual assets (logos, icons, hero images, social cards, illustrations) for web projects using Google Gemini. Triggers on: generate a logo, hero image, og:image, social card, favicon, app icon, illustration, brand assets, visual assets. Requires GOOGLE_API_KEY."
 ---
 
 # Web Assets Generator
@@ -21,9 +9,10 @@ Generate production-ready visual assets for web projects — logos, icons, hero 
 
 ## Prerequisites
 
-1. **Google API Key** — Set `GOOGLE_API_KEY` environment variable
+1. **Google API Key** — Copy `.env.example` to `.env` and add your key:
    ```bash
-   export GOOGLE_API_KEY=your_key_here
+   cp .env.example .env
+   # Edit .env and set your key
    ```
    Get one at [Google AI Studio](https://aistudio.google.com/apikey)
 
@@ -87,7 +76,7 @@ Build a prompt that combines:
 Run the generation script:
 
 ```bash
-npx tsx skills/web-assets/scripts/generate.ts \
+npx tsx --env-file=.env skills/web-assets/scripts/generate.ts \
   --prompt "your crafted prompt here" \
   --output "public/images/hero-homepage" \
   --aspect-ratio "16:9"

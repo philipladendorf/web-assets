@@ -1,0 +1,13 @@
+@layer base {
+  :root {
+    --color-primary: #8B5CF6;
+    --color-secondary: #EC4899;
+    --font-sans: 'Poppins', sans-serif;
+  }
+}
+
+@theme {
+  --color-primary: #0EA5E9;
+  --color-accent: #F97316;
+  --font-sans: 'Geist', sans-serif;
+}

@@ -208,6 +208,53 @@ describe("context-analysis", () => {
     });
   });
 
+  describe("calculateAspectRatio via width/height props", () => {
+    it("should calculate 1.91:1 from 1200x630 dimensions", () => {
+      const code = `<Image width={1200} height={630} src="/og.png" />`;
+      const result = detectStructuralContext(code);
+      expect(result.aspectRatio).toBe("1.91:1");
+    });
+
+    it("should calculate 2:1 from 1200x600 dimensions", () => {
+      const code = `<Image width={1200} height={600} src="/twitter.png" />`;
+      const result = detectStructuralContext(code);
+      expect(result.aspectRatio).toBe("2:1");
+    });
+
+    it("should calculate 16:9 from 1920x1080 dimensions", () => {
+      const code = `<img width="1920" height="1080" src="/banner.png" />`;
+      const result = detectStructuralContext(code);
+      expect(result.aspectRatio).toBe("16:9");
+    });
+
+    it("should calculate 1:1 from equal dimensions", () => {
+      const code = `<Image width={500} height={500} src="/avatar.png" />`;
+      const result = detectStructuralContext(code);
+      expect(result.aspectRatio).toBe("1:1");
+    });
+
+    it("should return reduced ratio for non-standard dimensions", () => {
+      // 700x500 = 7:5, which doesn't match any known ratio
+      const code = `<Image width={700} height={500} src="/custom.png" />`;
+      const result = detectStructuralContext(code);
+      expect(result.aspectRatio).toBe("7:5");
+    });
+  });
+
+  describe("JSX expression attribute extraction", () => {
+    it("should extract alt text from JSX expression strings", () => {
+      const code = `<img alt={"Dashboard overview"} src="/img.png" />`;
+      const result = detectSemanticContext(code);
+      expect(result.nearbyText).toContain("Dashboard overview");
+    });
+
+    it("should extract title attributes", () => {
+      const code = `<img title="Product screenshot" src="/img.png" />`;
+      const result = detectSemanticContext(code);
+      expect(result.nearbyText).toContain("Product screenshot");
+    });
+  });
+
   describe("ASPECT_RATIO_DIMENSIONS", () => {
     it("should have standard dimensions for common ratios", () => {
       expect(ASPECT_RATIO_DIMENSIONS["1:1"]).toEqual({ width: 1024, height: 1024 });
