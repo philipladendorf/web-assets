@@ -1,0 +1,20 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary: #2563EB;
+  --color-secondary: #10B981;
+  --color-accent: #F59E0B;
+  --color-background: #FFFFFF;
+  --color-foreground: #1F2937;
+  --color-muted: #6B7280;
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+.dark {
+  --color-primary: #3B82F6;
+  --color-background: #111827;
+  --color-foreground: #F9FAFB;
+}

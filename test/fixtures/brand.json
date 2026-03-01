@@ -1,0 +1,16 @@
+{
+  "name": "Acme Corp",
+  "colors": {
+    "primary": "#7C3AED",
+    "secondary": "#EC4899",
+    "accent": "#F59E0B",
+    "background": "#FFFFFF",
+    "foreground": "#1F2937"
+  },
+  "fonts": {
+    "heading": "Poppins",
+    "body": "Inter"
+  },
+  "style": "modern playful",
+  "keywords": ["friendly", "approachable", "creative"]
+}
